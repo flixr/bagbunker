@@ -33,56 +33,44 @@ __version__ = '0.0.3'
 
 @bb.job_model()
 class Metadata(object):
-    robot_name = db.Column(db.String(42), nullable=False)
-    use_case = db.Column(db.String(126), nullable=False)
+    sensor_name = db.Column(db.String(42), nullable=False)
+    company = db.Column(db.String(126), nullable=False)
+    location = db.Column(db.String(126), nullable=False)
 
 
-# XXX: This will receive all messages. What we really want is to
-# receive only /robot_name/name messages, but be called also if there
-# are no messages.
 @bb.job()
-@bb_bag.messages(topics='*')
+@bb_bag.messages(topics=())
 def job(fileset, messages):
     if not fileset.bag:
         return
-
-    name_topic = '/robot_name/name'
-    messages = messages \
-        if any(True for x in fileset.bag.topics if x.topic.name == name_topic) \
-        else ()
-    for topic, msg, timestamp in messages:
-        if topic == name_topic:
-            try:
-                robot_name = msg.data
-            except AttributeError:
-                robot_name = msg.robot_name
-            logger.debug('found robot_name via topic: %s' % msg)
-            use_case = ''
-            break
-    else:
-        path = fileset.dirpath.split(os.sep)
-        robot_name = path[3] if len(path) > 3 else 'unknown'
-        use_case = path[6] if len(path) > 6 else 'unknown'
-
-    logger.info('robot_name=%s, use_case=%s', robot_name, use_case)
-    yield Metadata(robot_name=robot_name, use_case=use_case)
+    path = fileset.dirpath.split(os.sep)
+    sensor_name = path[3] if len(path) > 3 else 'unknown'
+    company = path[4] if len(path) > 4 else 'unknown'
+    location = path[5] if len(path) > 5 else 'unknown'
+    logger.info('sensor_name=%s, company=%s, location=%s', sensor_name, company, location)
+    yield Metadata(sensor_name=sensor_name, company=company, location=location)
 
 
 @bb.filter()
-@bb.filter_input('robot', operators=['substring'])
-def filter_robot(query, ListingEntry, robot):
-    return query.filter(ListingEntry.robot.contains(robot.val))
-
+@bb.filter_input('sensor', operators=['substring'])
+def filter_sensor(query, ListingEntry, sensor):
+    return query.filter(ListingEntry.sensor.contains(sensor.val))
 
 @bb.filter()
-@bb.filter_input('use_case', operators=['substring'])
-def filter_use_case(query, ListingEntry, use_case):
-    return query.filter(ListingEntry.use_case.contains(use_case.val))
+@bb.filter_input('company', operators=['substring'])
+def filter_company(query, ListingEntry, company):
+    return query.filter(ListingEntry.company.contains(company.val))
+
+@bb.filter()
+@bb.filter_input('location', operators=['substring'])
+def filter_location(query, ListingEntry, location):
+    return query.filter(ListingEntry.location.contains(location.val))
 
 
 @bb.listing()
-@bb.listing_column('robot')
-@bb.listing_column('use_case')
+@bb.listing_column('sensor')
+@bb.listing_column('company')
+@bb.listing_column('location')
 def listing(fileset):
     jobrun = fileset.get_latest_jobrun('deepfield::metadata')
     if jobrun is None:
@@ -92,6 +80,7 @@ def listing(fileset):
     if meta is None:
         return {}
     return {
-        'robot': meta.robot_name,
-        'use_case': meta.use_case,
+        'sensor': meta.sensor_name,
+        'company': meta.company,
+        'location': meta.location,
     }
