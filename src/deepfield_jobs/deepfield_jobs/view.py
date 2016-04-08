@@ -65,8 +65,9 @@ def summary(filesets):
 
 @bb.detail()
 @bb.table_widget()
-@bb.column('robot')
-@bb.column('use_case')
+@bb.column('sensor')
+@bb.column('company')
+@bb.column('location')
 @bb.column('starttime', formatter='date')
 @bb.column('endtime', formatter='date')
 @bb.column('duration (s)')
@@ -77,8 +78,9 @@ def deepfield_metadata(fileset):
 
     bag = fileset.bag
     return [{
-        'robot': meta.robot_name if meta else None,
-        'use_case': meta.use_case if meta else None,
+        'sensor': meta.sensor_name if meta else None,
+        'company': meta.company if meta else None,
+        'location': meta.location if meta else None,
         'starttime': bag.starttime if bag else None,
         'endtime': bag.endtime if bag else None,
         'duration (s)': bag.duration.total_seconds() if bag else None,
